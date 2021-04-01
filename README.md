@@ -31,7 +31,7 @@ The goal of this exercise is largely an open one - we would just like to see how
 
 1. Change `sushiPerBlock` calculation
 
-Included in this repo is a copy of the MasterChefV2.sol contract (raw copy, edit as you wish). We would like to alter the `sushiPerBlock` function so that the rewards emission is no longer linear but now follows a decay curve of `Reward_Epoch = A * B ^ X` where A is the starting rewards in an epoch and B is a fixed constant `0.813` and `X` is the epoch number we would like to calculate total rewards for.
+Included in this repo is a copy of the MasterChefV2.sol contract (raw copy, edit as you wish). We would like to alter the `sushiPerBlock` function so that the rewards emission is no longer linear but now follows a decay curve of `Reward_Block = A * B ^ X` where A is the starting rewards in an epoch and B is a fixed constant `0.813` and `X` is the epoch number we would like to calculate total rewards for.
 
 Sample Calculation:
 
