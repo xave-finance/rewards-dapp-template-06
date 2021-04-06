@@ -1,16 +1,14 @@
 import React from "react";
 
 // We'll use ethers to interact with the Ethereum network and our contract
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 
 // We import the contract's artifacts and address here, as we are going to be
 // using them with ethers
-import TokenArtifact from "../contracts/Token.json";
 import contractAddress from "../contracts/contract-address.json";
-import lpTokenArtifact from "../contracts/LpToken.json";
-import lpcontractAddress from "../contracts/contract-address.json";
-import rewardsArtifact from "../contracts/Token.json";
-import rewardsContractAddress from "../contracts/contract-address.json";
+import LpTokenArtifact from "../contracts/LpToken.json";
+import RewardTokenArtifact from "../contracts/RewardToken.json";
+import MasterChefV2Artifact from "../contracts/MasterChefV2.json";
 
 // All the logic of this dapp is contained in the Dapp component.
 // These other components are just presentational ones: they don't have any
@@ -22,11 +20,12 @@ import { Transfer } from "./Transfer";
 import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { NoTokensMessage } from "./NoTokensMessage";
+import Container from "./Container";
 
 // This is the Hardhat Network id, you might change it in the hardhat.config.js
 // Here's a list of network ids https://docs.metamask.io/guide/ethereum-provider.html#properties
 // to use when deploying to other networks.
-const NETWORK_ID = '42'; //Kovan
+const NETWORK_ID = "4"; //Kovan
 
 // This is an error code that indicates that the user canceled a transaction
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
@@ -53,6 +52,8 @@ export class Dapp extends React.Component {
       // The user's address and balance
       selectedAddress: undefined,
       balance: undefined,
+      staked: undefined,
+      reward: undefined,
       // The ID about transactions being sent, and any possible error with them
       txBeingSent: undefined,
       transactionError: undefined,
@@ -78,8 +79,8 @@ export class Dapp extends React.Component {
     // clicks a button. This callback just calls the _connectWallet method.
     if (!this.state.selectedAddress) {
       return (
-        <ConnectWallet 
-          connectWallet={() => this._connectWallet()} 
+        <ConnectWallet
+          connectWallet={() => this._connectWallet()}
           networkError={this.state.networkError}
           dismiss={() => this._dismissNetworkError()}
         />
@@ -113,16 +114,12 @@ export class Dapp extends React.Component {
         <hr />
 
         <div className="row">
-          <div className="col-12"></div>
-            <p>
-              Should display the following UI elements:
-              <ul>
-                <li>Stake button</li>
-                <li>Unstake button</li>
-                <li>Amount Staked</li>
-                <li>Rewards Earned</li>
-              </ul>
-            </p>
+          <Container
+            staked={this.state.staked}
+            reward={this.state.reward}
+            handleStake={() => this._handleStake()}
+            handleUnStake={() => this._handleUnStake()}
+          />
         </div>
       </div>
     );
@@ -157,14 +154,14 @@ export class Dapp extends React.Component {
       // `accountsChanged` event can be triggered with an undefined newAddress.
       // This happens when the user removes the Dapp from the "Connected
       // list of sites allowed access to your addresses" (Metamask > Settings > Connections)
-      // To avoid errors, we reset the dapp state 
+      // To avoid errors, we reset the dapp state
       if (newAddress === undefined) {
         return this._resetState();
       }
-      
+
       this._initialize(newAddress);
     });
-    
+
     // We reset the dapp state if the network is changed
     window.ethereum.on("networkChanged", ([networkId]) => {
       this._stopPollingData();
@@ -197,10 +194,28 @@ export class Dapp extends React.Component {
     // When, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
     this._token = new ethers.Contract(
-      contractAddress.Token,
-      TokenArtifact.abi,
+      contractAddress.LpToken,
+      LpTokenArtifact.abi,
       this._provider.getSigner(0)
     );
+    this._reward = new ethers.Contract(
+      contractAddress.RewardToken,
+      RewardTokenArtifact.abi,
+      this._provider.getSigner(0)
+    );
+    this._chef = new ethers.Contract(
+      contractAddress.MasterChefV2,
+      MasterChefV2Artifact.abi,
+      this._provider.getSigner(0)
+    );
+    this._initPool();
+  }
+
+  async _initPool() {
+    const poolLength = await this._chef.poolLength();
+    if (poolLength.toString() === "0") {
+      this._chef.add(1, this._token.address, this._reward.address);
+    }
   }
 
   // The next to methods are needed to start and stop polling data. While
@@ -211,10 +226,10 @@ export class Dapp extends React.Component {
   // don't need to poll it. If that's the case, you can just fetch it when you
   // initialize the app, as we do with the token data.
   _startPollingData() {
-    this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
+    this._pollDataInterval = setInterval(() => this._updater(), 1000);
 
     // We run it once immediately so we don't have to wait for it
-    this._updateBalance();
+    this._updater();
   }
 
   _stopPollingData() {
@@ -231,9 +246,30 @@ export class Dapp extends React.Component {
     this.setState({ tokenData: { name, symbol } });
   }
 
-  async _updateBalance() {
+  async _updater() {
     const balance = await this._token.balanceOf(this.state.selectedAddress);
-    this.setState({ balance });
+    const userInfo = await this._chef.userInfo(0, this.state.selectedAddress);
+    this.setState({
+      balance,
+      staked: userInfo.amount?.toString(),
+      reward: ethers.utils.formatEther(userInfo.rewardDebt?.toString()),
+    });
+  }
+
+  async _handleStake() {
+    await this._chef.deposit(
+      0,
+      BigNumber.from(100),
+      this.state.selectedAddress
+    );
+  }
+
+  async _handleUnStake() {
+    await this._chef.withdraw(
+      0,
+      BigNumber.from(100),
+      this.state.selectedAddress
+    );
   }
 
   // This method sends an ethereum transaction to transfer tokens.
@@ -321,14 +357,14 @@ export class Dapp extends React.Component {
     this.setState(this.initialState);
   }
 
-  // This method checks if Metamask selected network is Localhost:8545 
+  // This method checks if Metamask selected network is Localhost:8545
   _checkNetwork() {
     if (window.ethereum.networkVersion === NETWORK_ID) {
       return true;
     }
 
-    this.setState({ 
-      networkError: 'Please connect Metamask to Kovan'
+    this.setState({
+      networkError: "Please connect Metamask to Kovan",
     });
 
     return false;
