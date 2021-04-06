@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.7.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,4 +18,5 @@ contract LpToken is ERC20, Ownable {
     function burn(address account, uint256 amount) external onlyOwner {
         _burn(account, amount);
     }
+
 }
