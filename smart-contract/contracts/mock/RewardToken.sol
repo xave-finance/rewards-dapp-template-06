@@ -9,7 +9,6 @@ contract RewardToken is ERC20, Ownable {
     address public redeemContract;
     
     constructor(string memory _name, string memory _symbol)
-        public
         ERC20(_name, _symbol)
     {}
 

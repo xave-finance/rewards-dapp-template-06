@@ -1,0 +1,45 @@
+.root {
+  width: 100%;
+}
+
+.textblock {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+
+  &__title {
+    font-size: 1.5rem;
+    color: #00b9eb;
+    font-weight: bold;
+
+    &.orange {
+      color: #ff8200;
+    }
+  }
+
+  &__divider {
+    width: 30px;
+    height: 4px;
+    background: #f27c07;
+    margin-top: 40px;
+    margin-bottom: 30px;
+
+    @media screen and (max-width: 580px) {
+      margin-top: 20px;
+      margin-bottom: 15px;
+    }
+  }
+
+  &__content {
+    font-size: 1rem;
+    color: #fff;
+    line-height: 1.4rem;
+
+    @media screen and (max-width: 580px) {
+      // text-align: center;  
+      br {
+        display: none;
+      }
+    }
+  }
+}

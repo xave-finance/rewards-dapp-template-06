@@ -1,30 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
 
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-interface LPTOKEN {
-    function mint(address account, uint256 amount) external;
-    function burn(address account, uint256 amount) external;
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./mock/LpToken.sol";
+import "./mock/RewardToken.sol";
 
 contract Redeem {
     mapping(address => uint) public rewardBalancePerUser;
     mapping(address => uint) public lastBlockNumberPerUser;
     mapping(address => uint) public depositBalancePerUser;
 
-    IERC20 public token0; // token for deposit
-    LPTOKEN public token1; // token for reward
+    LpToken public token0; // token for deposit
+    RewardToken public token1; // token for reward
 
     uint public totalDeposit;
     uint public REWARD_PER_BLOCK = 1e20;
@@ -35,8 +21,8 @@ contract Redeem {
     event Withdrawn(address indexed user, uint amount);
 
     constructor (address _token0, address _token1) payable {
-        token0 = IERC20(_token0);
-        token1 = LPTOKEN(_token1);
+        token0 = LpToken(_token0);
+        token1 = RewardToken(_token1);
         gov = msg.sender;
     }
 
